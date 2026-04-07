@@ -46,7 +46,7 @@ df = df[feature_columns + [target_column]]
 
 X = df[feature_columns]
 y = df[target_column]
-# we preprocess the data by creating a pipeline that handles both numerical and categorical features. For numerical features, we impute missing values using the median. For categorical features, we impute missing values using the most frequent value and then apply one-hot encoding to convert them into a format suitable for machine learning algorithms.
+# we preprocess the data by crtureseating a pipeline that handles both numerical and categorical features. For numerical features, we impute missing values using the median. For categorical features, we impute missing values using the most frequent value and then apply one-hot encoding to convert them into a format suitable for machine learning algorithms.
 numeric_transformer = Pipeline(steps=[
     ("imputer", SimpleImputer(strategy="most_frequent"))
 ])
@@ -56,13 +56,48 @@ categorical_transformer = Pipeline(steps=[
     ("onehot", OneHotEncoder(handle_unknown="ignore"))
 ])
 
+numeric_features= ["work_year", "remote_ratio"]
+categorical_features = [ "experience_level", "employment_type", "job_title", "employee_residence", "company_location", "company_size"]
 preprocessor = ColumnTransformer(
     transformers=[
         ("num", numeric_transformer, numeric_features),
         ("cat", categorical_transformer, categorical_features)
     ]
 )
+#we use pipeline because same preprosessing steps will be aapplied automatically ,clean ,less bugs 
+model = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("regressor", DecisionTreeRegressor(
+        random_state=42,
+        max_depth=10,
+        min_samples_split=5,
+        min_samples_leaf=2
+    ))
+])
+
+# now we split our data into training and testing sets to evaluate the performance of our model on unseen data. We use 80% of the data for training and 20% for testing.
+#we work with different data to stimulaee real world scenario where we have to predict on unseen data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print("\nTrain shape:", X_train.shape)
+print("Test shape:", X_test.shape)
 
 
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
+#evaluate to know how good our model is
+# 10) Evaluate
+mae = mean_absolute_error(y_test, y_pred)
+rmse = mean_squared_error(y_test, y_pred) ** 0.5
+r2 = r2_score(y_test, y_pred)
 
+print("\nModel Evaluation:")
+print(f"MAE  : {mae:.2f}")
+print(f"RMSE : {rmse:.2f}")
+print(f"R2   : {r2:.4f}")
+
+joblib.dump(model, "salary_prediction_model.pkl")
+print("\nModel saved as salary_prediction_model.pkl")
