@@ -1,0 +1,9 @@
+pandas==2.2.2
+scikit-learn
+joblib
+fastapi
+uvicorn
+requests
+streamlit
+matplotlib
+supabase
