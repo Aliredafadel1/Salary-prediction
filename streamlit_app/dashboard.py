@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit  as st
 import requests
 import pandas as pd
 df = pd.read_csv("data/raw/ds_salaries.csv")
@@ -6,14 +6,35 @@ df = pd.read_csv("data/raw/ds_salaries.csv")
 st.set_page_config(page_title="Salary Prediction", page_icon="💼", layout="centered")
 st.title("💼 Salary Prediction App")
 st.write("Enter job and company details to predict salary in USD.")
-work_year = st.number_input("Work Year", min_value=2020, max_value=2035, value=2024)
-experience_level = st.selectbox("Experience Level", ["EN", "MI", "SE", "EX"])
-employment_type = st.selectbox("Employment Type", ["FT", "PT", "CT", "FL"])
-job_title =st.selectbox("Job Title",sorted(df["job_title"].unique()))
-employee_residence = st.text_input("Employee Residence", "US")
-remote_ratio = st.slider("Remote Ratio", 0, 100, 100)
-company_location = st.text_input("Company Location", "US")
-company_size = st.selectbox("Company Size", ["S", "M", "L"])
+col1, col2 = st.columns(2)
+with col1:
+    work_year = st.number_input("Work Year", min_value=1990, max_value=2035, value=2024)
+    levels = {
+        "EN": "Entry Level",
+        "MI": "Mid Level",
+        "SE": "Senior",
+        "EX": "Executive"
+    }
+    experience_level = st.selectbox("Experience Level", 
+        options=list(levels.keys()), 
+        format_func=lambda x: levels[x]
+    )
+    types = {
+        "FT": "Full Time",
+        "PT": "Part Time",
+        "CT": "Contract",
+        "FL": "Freelance"
+    }
+    employment_type = st.selectbox("Employment Type", 
+        options=list(types.keys()), 
+        format_func=lambda x: types[x]
+    )
+    job_title = st.selectbox("Job Title", sorted(df["job_title"].unique()))
+with col2:
+    employee_residence = st.text_input("Employee Residence", "US")
+    remote_ratio = st.slider("Remote Ratio", 0, 100, 100)
+    company_location = st.text_input("Company Location", "US")
+    company_size = st.selectbox("Company Size", ["S", "M", "L"])
 if st.button("Predict Salary"):
     payload = {
         "work_year": work_year,
@@ -38,5 +59,4 @@ if st.button("Predict Salary"):
     except requests.exceptions.ConnectionError:
         st.error("Could not connect to the API. Please ensure the FastAPI server is running.")
     except Exception as e:
-        st.error(f"Connection error: {e}")
-
+        st.error(f"An error occurred: {str(e)}")
