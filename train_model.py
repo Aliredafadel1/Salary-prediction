@@ -57,7 +57,7 @@ categorical_transformer = Pipeline(steps=[
 ])
 
 numeric_features= ["work_year", "remote_ratio"]
-categorical_features = [ "experience_level", "employment_type", "job_title", "employee_residence", "company_location", "company_size"]
+categorical_features = [ "experience_level", "employment_type", "job_title", "employee_residence", "company_location", "company_size"GI]
 preprocessor = ColumnTransformer(
     transformers=[
         ("num", numeric_transformer, numeric_features),
