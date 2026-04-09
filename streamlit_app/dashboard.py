@@ -3,23 +3,31 @@ import pandas as pd
 import requests
 import matplotlib.pyplot as plt
 
+# --------------------------------
+# API URLs
+# --------------------------------
 API_BASE = "http://127.0.0.1:8000"
 PREDICT_URL = f"{API_BASE}/predict"
+PREDICT_WITH_AI_URL = f"{API_BASE}/predict-with-ai"
 INSIGHTS_URL = f"{API_BASE}/insights"
 RECENT_LOGS_URL = f"{API_BASE}/recent_logs"
+AI_URL = f"{API_BASE}/ai-explain"
 
+# --------------------------------
+# Page config
+# --------------------------------
 st.set_page_config(page_title="Salary Prediction Dashboard", layout="wide")
 
-st.title("Salary Prediction Dashboard")
-st.write("A local dashboard for salary insights, storytelling, and prediction.")
+st.title("💼 Salary Prediction Dashboard")
+st.write("A local dashboard for salary insights, storytelling, prediction, and AI explanations.")
 
 # --------------------------------
 # Sidebar
 # --------------------------------
 st.sidebar.header("About")
 st.sidebar.write(
-    "This dashboard explores salary patterns in data jobs and predicts salary "
-    "based on job and company details."
+    "This dashboard explores salary patterns in data jobs, predicts salary "
+    "based on job and company details, and uses Ollama Phi to explain predictions."
 )
 
 # --------------------------------
@@ -32,6 +40,8 @@ try:
     insights_response = requests.get(INSIGHTS_URL, timeout=15)
     if insights_response.status_code == 200:
         insights = insights_response.json()
+    else:
+        st.warning(f"Could not load insights. Status code: {insights_response.status_code}")
 except Exception as e:
     st.warning(f"Could not load insights from FastAPI: {e}")
 
@@ -42,6 +52,8 @@ try:
         recent_logs = logs_json.get("logs", [])
         if logs_json.get("warning"):
             st.info(f"Recent logs info: {logs_json['warning']}")
+    else:
+        st.info(f"Could not load recent logs. Status code: {logs_response.status_code}")
 except Exception as e:
     st.info(f"Could not load recent logs: {e}")
 
@@ -58,8 +70,8 @@ if insights and "error" not in insights:
     st.markdown("### Quick Story")
     st.write(
         "This dataset shows how salary changes with experience, company size, "
-        "and job role. The dashboard helps explain who earns more, where the gaps are, "
-        "and what patterns stand out."
+        "remote work, and job role. The dashboard helps explain who earns more, "
+        "where the differences are, and what patterns stand out."
     )
 
 # --------------------------------
@@ -76,6 +88,7 @@ if insights and "error" not in insights:
                 "experience_level": list(exp_data.keys()),
                 "avg_salary": list(exp_data.values())
             })
+
             fig, ax = plt.subplots(figsize=(7, 4))
             ax.bar(exp_df["experience_level"], exp_df["avg_salary"])
             ax.set_ylabel("Average Salary (USD)")
@@ -95,6 +108,7 @@ if insights and "error" not in insights:
                 "company_size": list(size_data.keys()),
                 "avg_salary": list(size_data.values())
             })
+
             fig, ax = plt.subplots(figsize=(7, 4))
             ax.bar(size_df["company_size"], size_df["avg_salary"])
             ax.set_ylabel("Average Salary (USD)")
@@ -103,7 +117,7 @@ if insights and "error" not in insights:
 
             st.caption(
                 "Story: company size can affect compensation, though the pattern may vary "
-                "depending on role mix and location."
+                "depending on role mix, country, and market demand."
             )
 
     st.subheader("Average Salary by Remote Ratio")
@@ -122,7 +136,7 @@ if insights and "error" not in insights:
 
         st.caption(
             "Story: remote work does not always guarantee higher salary, "
-            "but it can reveal interesting job-market differences."
+            "but it can reveal useful differences in the job market."
         )
 
     st.subheader("Top 10 Job Titles")
@@ -141,15 +155,15 @@ if insights and "error" not in insights:
         st.pyplot(fig)
 
         st.caption(
-            "Story: a few job titles dominate the dataset, which can strongly influence "
-            "overall salary patterns."
+            "Story: a few job titles dominate the dataset, which strongly shapes "
+            "overall salary patterns and average values."
         )
 
 # --------------------------------
 # Prediction form
 # --------------------------------
 st.markdown("---")
-st.header("Predict Salary")
+st.header("🔮 Predict Salary")
 
 col1, col2 = st.columns(2)
 
@@ -182,42 +196,105 @@ with col2:
     company_location = st.text_input("Company Location", value="US")
     company_size = st.selectbox("Company Size", ["S", "M", "L"])
 
-if st.button("Predict Salary"):
-    payload = {
-        "work_year": work_year,
-        "experience_level": experience_level,
-        "employment_type": employment_type,
-        "job_title": job_title,
-        "employee_residence": employee_residence,
-        "remote_ratio": remote_ratio,
-        "company_location": company_location,
-        "company_size": company_size
-    }
+payload = {
+    "work_year": work_year,
+    "experience_level": experience_level,
+    "employment_type": employment_type,
+    "job_title": job_title,
+    "employee_residence": employee_residence,
+    "remote_ratio": remote_ratio,
+    "company_location": company_location,
+    "company_size": company_size
+}
 
+btn1, btn2 = st.columns(2)
+
+with btn1:
+    if st.button("Predict Salary"):
+        try:
+            response = requests.post(PREDICT_URL, json=payload, timeout=20)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                if "predicted_salary" in result:
+                    st.success(f"💰 Predicted Salary: ${result['predicted_salary']:,.2f}")
+
+                if result.get("logged_to_supabase"):
+                    st.info("Prediction was logged to Supabase successfully.")
+
+                if "warning" in result:
+                    st.warning(result["warning"])
+
+                if "error" in result:
+                    st.error(result["error"])
+            else:
+                st.error(f"API returned status code {response.status_code}: {response.text}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("Could not connect to the API. Please ensure the FastAPI server is running.")
+        except requests.exceptions.Timeout:
+            st.error("The API request timed out.")
+        except Exception as e:
+            st.error(f"Unexpected error: {str(e)}")
+
+with btn2:
+    if st.button("Predict Salary + AI Explanation"):
+        try:
+            response = requests.post(PREDICT_WITH_AI_URL, json=payload, timeout=120)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                if "predicted_salary" in result:
+                    st.success(f"💰 Predicted Salary: ${result['predicted_salary']:,.2f}")
+
+                if "ai_explanation" in result:
+                    st.info("🧠 AI Explanation")
+                    st.write(result["ai_explanation"])
+
+                if "error" in result:
+                    st.error(result["error"])
+            else:
+                st.error(f"API returned status code {response.status_code}: {response.text}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("Could not connect to the API. Please ensure FastAPI and Ollama are running.")
+        except requests.exceptions.Timeout:
+            st.error("The AI request timed out.")
+        except Exception as e:
+            st.error(f"Unexpected error: {str(e)}")
+
+# --------------------------------
+# AI Assistant (Ollama)
+# --------------------------------
+st.markdown("---")
+st.header("🧠 AI Assistant (Powered by Ollama Phi)")
+
+user_prompt = st.text_area(
+    "Ask anything about salaries, jobs, remote work, or your data:",
+    "Explain why senior data scientists usually earn more than entry-level roles."
+)
+
+if st.button("Ask AI"):
     try:
-        response = requests.post(PREDICT_URL, json=payload, timeout=20)
+        response = requests.post(
+            AI_URL,
+            json={"prompt": user_prompt},
+            timeout=120
+        )
 
         if response.status_code == 200:
             result = response.json()
-
-            if "predicted_salary" in result:
-                st.success(f"Predicted Salary: ${result['predicted_salary']:,.2f}")
-
-            if result.get("logged_to_supabase"):
-                st.info("Prediction was logged to Supabase successfully.")
-
-            if "warning" in result:
-                st.warning(result["warning"])
-
-            if "error" in result:
-                st.error(result["error"])
+            st.success("AI Response")
+            st.write(result.get("response", "No response returned."))
         else:
-            st.error(f"API returned status code {response.status_code}: {response.text}")
+            st.error(f"API error {response.status_code}: {response.text}")
 
     except requests.exceptions.ConnectionError:
-        st.error("Could not connect to the API. Please ensure the FastAPI server is running.")
+        st.error("Could not connect to FastAPI or Ollama. Please make sure both are running.")
     except requests.exceptions.Timeout:
-        st.error("The API request timed out.")
+        st.error("The AI request timed out.")
     except Exception as e:
         st.error(f"Unexpected error: {str(e)}")
 
@@ -225,7 +302,7 @@ if st.button("Predict Salary"):
 # Recent predictions
 # --------------------------------
 st.markdown("---")
-st.header("Recent Predictions from Supabase")
+st.header("📜 Recent Predictions from Supabase")
 
 if recent_logs:
     logs_df = pd.DataFrame(recent_logs)
