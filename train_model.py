@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Salary Dashboard", layout="wide")
 
-st.title("💼 Salary Prediction & Analysis Dashboard")
+st.title(" Salary Prediction & Analysis Dashboard")
 st.markdown("Understand **who earns what and why** through data storytelling.")
 
 # ----------------------------
@@ -41,12 +41,12 @@ ax.set_xlabel("Salary (USD)")
 ax.set_ylabel("Frequency")
 st.pyplot(fig)
 
-st.markdown("👉 Most salaries are concentrated in a specific range, with a few very high outliers.")
+st.markdown(" Most salaries are concentrated in a specific range, with a few very high outliers.")
 
 # ----------------------------
 # Salary by Experience Level
 # ----------------------------
-st.header("🎓 Salary by Experience Level")
+st.header(" Salary by Experience Level")
 
 exp_salary = df.groupby("experience_level")["salary_in_usd"].mean().sort_values()
 
@@ -74,7 +74,7 @@ st.markdown("👉 Larger companies tend to offer higher salaries.")
 # ----------------------------
 # Remote Work Impact
 # ----------------------------
-st.header("🌍 Remote Work vs Salary")
+st.header(" Remote Work vs Salary")
 
 remote_salary = df.groupby("remote_ratio")["salary_in_usd"].mean()
 
