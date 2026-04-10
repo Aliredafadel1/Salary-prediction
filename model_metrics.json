@@ -1,0 +1,19 @@
+{
+  "model_name": "RandomForestRegressor",
+  "target": "salary_in_usd",
+  "features": [
+    "work_year",
+    "experience_level",
+    "employment_type",
+    "job_title",
+    "employee_residence",
+    "remote_ratio",
+    "company_location",
+    "company_size"
+  ],
+  "train_rows": 485,
+  "test_rows": 122,
+  "r2": 0.5246,
+  "mae": 27930.55,
+  "rmse": 42684.25
+}
